@@ -22,14 +22,14 @@ object MissingFutureLib {
 
   object Serial {
 
-    def serialSequence[A](traversableFutures: Traversable[() => Future[A]]): Future[Traversable[A]] = {
-      serialTraverse(traversableFutures)(_.map(identity))
-    }
+    def serialSequence[A](futures: (=> Future[A])*): Future[Traversable[A]] =
+      serialTraverse(futures: _*)(_.map(identity))
 
-    def serialTraverse[A, B](traversableFutures: Traversable[() => Future[A]])(transform: Future[A] => Future[B]): Future[Traversable[B]] = {
-      traversableFutures.foldLeft(Future.successful(List.empty[B])) { (partialResultFuture, currentFuture) =>
+
+    def serialTraverse[A, B](futures: (=> Future[A])*)(transform: Future[A] => Future[B]): Future[Traversable[B]] = {
+      futures.foldLeft(Future.successful(List.empty[B])) { (partialResultFuture, currentFuture) =>
         partialResultFuture.flatMap { partialResult =>
-          transform(currentFuture()).map { currentResult =>
+          transform(currentFuture).map { currentResult =>
             partialResult :+ currentResult
           }
         }
