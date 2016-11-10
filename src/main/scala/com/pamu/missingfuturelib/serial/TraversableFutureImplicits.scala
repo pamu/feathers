@@ -14,28 +14,14 @@
  *    limitations under the License.
  */
 
-package com.pamu.missingfuturelib
+package com.pamu.missingfuturelib.serial
 
 import scala.concurrent.Future
 
-object MissingFutureLib {
+object TraversableFutureImplicits {
 
-  object Serial {
-
-    def serialSequence[A](traversableFutures: Traversable[() => Future[A]]): Future[Traversable[A]] = {
-      serialTraverse(traversableFutures)(_.map(identity))
-    }
-
-    def serialTraverse[A, B](traversableFutures: Traversable[() => Future[A]])(transform: Future[A] => Future[B]): Future[Traversable[B]] = {
-      traversableFutures.foldLeft(Future.successful(List.empty[B])) { (partialResultFuture, currentFuture) =>
-        partialResultFuture.flatMap { partialResult =>
-          transform(currentFuture()).map { currentResult =>
-            partialResult :+ currentResult
-          }
-        }
-      }
-    }
-
+  implicit class TraversableFutureImplicit[A <: Traversable[Future[_]]](a: A) {
+    def foldSerially(): Unit = ???
   }
 
 }
