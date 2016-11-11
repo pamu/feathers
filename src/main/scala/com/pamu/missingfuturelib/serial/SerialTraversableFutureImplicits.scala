@@ -14,29 +14,31 @@
  *    limitations under the License.
  */
 
-package com.pamu.missingfuturelib
+package com.pamu.missingfuturelib.serial
 
 import com.pamu.missingfuturelib.delayedfuture.DelayedFuture
 
 import scala.concurrent.{ExecutionContext, Future}
 
-object MissingFutureLib {
+object SerialTraversableFutureImplicits {
 
-  object Serial {
+  implicit class SerialTraversableFutureImplicit[A, T <: Traversable[DelayedFuture[A]]](delayedFutures: T) {
+    def foldSerially(): Unit = ???
 
-    def serialSequence[A](delayedFutures: Traversable[DelayedFuture[A]])(implicit ec: ExecutionContext): Future[Traversable[A]] =
-      serialTraverse(delayedFutures)(_.map(identity))
+    def serialSequence(implicit ec: ExecutionContext): Future[Traversable[A]] =
+      serialTraverse(_.map(identity))
 
 
-    def serialTraverse[A, B](delayedFutures: Traversable[DelayedFuture[A]])(transform: Future[A] => Future[B])(implicit ec: ExecutionContext): Future[Traversable[B]] = {
-      delayedFutures.foldLeft(Future.successful(List.empty[B])) { (partialResultFuture, currentFuture) =>
+    def serialTraverse[B](transform: Future[A] => Future[B])(implicit ec: ExecutionContext): Future[Traversable[B]] = {
+      delayedFutures.foldLeft(Future.successful(Traversable.empty[B])) { (partialResultFuture, currentFuture) =>
         partialResultFuture.flatMap { partialResult =>
           transform(currentFuture.delayedFuture()).map { currentResult =>
-            partialResult :+ currentResult
+            partialResult ++ Traversable(currentResult)
           }
         }
       }
     }
+
 
   }
 

@@ -14,22 +14,11 @@
  *    limitations under the License.
  */
 
-package com.pamu.missingfuturelib.delayedfuture
+package com.pamu.missingfuturelib.parallel
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
-sealed trait DelayedFuture[A] {
-  val delayedFuture:  () => Future[A]
-  def run: Future[A] = delayedFuture()
-}
-
-
-object DelayedFuture {
-  def apply[A](future: => Future[A]): DelayedFuture[A] = new DelayedFuture[A] {
-    override val delayedFuture: () => Future[A] =  () => future
-  }
-
-  def apply[A](code: => A)(implicit ec: ExecutionContext): DelayedFuture[A] = new DelayedFuture[A] {
-    override val delayedFuture: () => Future[A] = () => Future(code)
+object ParallelTraversableFutureImplicits {
+  implicit class ParallelTraversableFutureImplicit[A, T <: Traversable[Future[A]]](futures: T) {
   }
 }

@@ -1,3 +1,5 @@
+import org.scalatest.{FlatSpec, Matchers}
+
 /*
  * Copyright (c) 2016 Pamu Nagarjuna (http://pamu.github.io).
  *
@@ -14,14 +16,13 @@
  *    limitations under the License.
  */
 
-package com.pamu.missingfuturelib.serial
+/**
+  * Created by pnagarjuna on 11/11/16.
+  */
 
-import scala.concurrent.Future
-
-object TraversableFutureImplicits {
-
-  implicit class TraversableFutureImplicit[A <: Traversable[Future[_]]](a: A) {
-    def foldSerially(): Unit = ???
+class SampleTest extends FlatSpec with Matchers {
+  "a" should "be equal to 1" in {
+    val a = 1
+    a should be (1)
   }
-
 }
