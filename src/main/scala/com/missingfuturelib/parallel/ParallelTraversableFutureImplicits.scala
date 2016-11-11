@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package com.pamu.missingfuturelib.parallel
+package com.missingfuturelib.parallel
 
 import scala.concurrent.Future
 

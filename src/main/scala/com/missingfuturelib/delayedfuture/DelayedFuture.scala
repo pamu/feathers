@@ -14,13 +14,13 @@
  *    limitations under the License.
  */
 
-package com.pamu.missingfuturelib.delayedfuture
+package com.missingfuturelib.delayedfuture
 
 import scala.concurrent.{ExecutionContext, Future}
 
 sealed trait DelayedFuture[A] {
   val delayedFuture:  () => Future[A]
-  def run: Future[A] = delayedFuture()
+  def run(): Future[A] = delayedFuture()
 }
 
 

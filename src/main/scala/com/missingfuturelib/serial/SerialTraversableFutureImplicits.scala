@@ -14,8 +14,9 @@
  *    limitations under the License.
  */
 
-package com.pamu.missingfuturelib.serial
+package com.missingfuturelib.serial
 
+import com.missingfuturelib.delayedfuture.DelayedFuture
 import com.pamu.missingfuturelib.delayedfuture.DelayedFuture
 
 import scala.concurrent.{ExecutionContext, Future}
