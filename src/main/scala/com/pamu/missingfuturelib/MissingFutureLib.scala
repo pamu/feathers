@@ -16,20 +16,22 @@
 
 package com.pamu.missingfuturelib
 
+import com.pamu.missingfuturelib.delayedfuture.DelayedFuture
+
 import scala.concurrent.{ExecutionContext, Future}
 
 object MissingFutureLib {
 
   object Serial {
 
-    def serialSequence[A](futures: (() => Future[A])*)(implicit ec: ExecutionContext): Future[Traversable[A]] =
-      serialTraverse(futures: _*)(_.map(identity))
+    def serialSequence[A](delayedFutures: Traversable[DelayedFuture[A]])(implicit ec: ExecutionContext): Future[Traversable[A]] =
+      serialTraverse(delayedFutures)(_.map(identity))
 
 
-    def serialTraverse[A, B](futures: (() => Future[A])*)(transform: Future[A] => Future[B])(implicit ec: ExecutionContext): Future[Traversable[B]] = {
-      futures.foldLeft(Future.successful(List.empty[B])) { (partialResultFuture, currentFuture) =>
+    def serialTraverse[A, B](delayedFutures: Traversable[DelayedFuture[A]])(transform: Future[A] => Future[B])(implicit ec: ExecutionContext): Future[Traversable[B]] = {
+      delayedFutures.foldLeft(Future.successful(List.empty[B])) { (partialResultFuture, currentFuture) =>
         partialResultFuture.flatMap { partialResult =>
-          transform(currentFuture()).map { currentResult =>
+          transform(currentFuture.delayedFuture()).map { currentResult =>
             partialResult :+ currentResult
           }
         }

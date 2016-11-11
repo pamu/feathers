@@ -1,4 +1,4 @@
-name := "missing-futures-library"
+name := "missing-futures-lib"
 
 version := "0.0.1"
 

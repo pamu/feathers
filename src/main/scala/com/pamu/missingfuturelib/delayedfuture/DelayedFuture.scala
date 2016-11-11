@@ -19,12 +19,12 @@ package com.pamu.missingfuturelib.delayedfuture
 import scala.concurrent.Future
 
 sealed trait DelayedFuture[A] {
-  def delayedFuture:  () => Future[A]
+  val delayedFuture:  () => Future[A]
 }
 
 
 object DelayedFuture {
   def apply[A](future: => Future[A]): DelayedFuture[A] = new DelayedFuture[A] {
-    override def delayedFuture: () => Future[A] =  () => future
+    override val delayedFuture: () => Future[A] =  () => future
   }
 }
