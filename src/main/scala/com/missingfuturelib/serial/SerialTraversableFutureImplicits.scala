@@ -24,7 +24,15 @@ import scala.concurrent.{ExecutionContext, Future}
 object SerialTraversableFutureImplicits {
 
   implicit class SerialTraversableFutureImplicit[A, T <: Traversable[DelayedFuture[A]]](delayedFutures: T) {
-    def foldSerially(): Unit = ???
+    def foldLeftSerially[B](acc: B)(f: (B, A) => Future[B]): Future[B] = {
+      delayedFutures.foldLeft(Future.successful(acc)) { (partialResultFuture, currentFuture) =>
+        partialResultFuture.flatMap { partialResult =>
+          currentFuture.run().flatMap { current =>
+            f(partialResult, current)
+          }
+        }
+      }
+    }
 
     def serialSequence(implicit ec: ExecutionContext): Future[Traversable[A]] =
       serialTraverse(_.map(identity))
