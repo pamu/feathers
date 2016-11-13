@@ -19,8 +19,18 @@ package com.missingfuturelib.delayedfuture
 import scala.concurrent.{ExecutionContext, Future}
 
 sealed trait DelayedFuture[A] {
+
   val delayedFuture:  () => Future[A]
+
   def run(): Future[A] = delayedFuture()
+
+  def map[B](f: A => B): DelayedFuture[B] = {
+    DelayedFuture(delayedFuture().map(f))
+  }
+
+  def flatMap[B](f: A => DelayedFuture[B]): DelayedFuture[B] = {
+    DelayedFuture(delayedFuture().flatMap(f(_).run()))
+  }
 }
 
 

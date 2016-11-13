@@ -16,9 +16,17 @@
 
 package com.missingfuturelib.parallel
 
+import com.missingfuturelib.delayedfuture.DelayedFuture
+
 import scala.concurrent.Future
 
 object ParallelTraversableFutureImplicits {
   implicit class ParallelTraversableFutureImplicit[A, T <: Traversable[Future[A]]](futures: T) {
+  }
+  implicit class ParallelFutureImplicit[T](delayedFuture: DelayedFuture[T]) {
+    def retryParallely[U](retries: Int)(future: Future[T] => Future[U]): Future[List[T]] = {
+      val futures = List.fill(retries)(delayedFuture.run())
+      Future.sequence(futures)
+    }
   }
 }
