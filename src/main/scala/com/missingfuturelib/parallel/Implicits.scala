@@ -20,7 +20,7 @@ import com.missingfuturelib.delayedfuture.DelayedFuture
 
 import scala.concurrent.{ExecutionContext, Future}
 
-object ParallelTraversableFutureImplicits {
+object Implicits {
 
   implicit class ParallelTraversableFutureImplicit[T, A <: TraversableOnce[Future[T]]](futures: A) {
 

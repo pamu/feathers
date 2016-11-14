@@ -37,11 +37,11 @@ sealed trait DelayedFuture[A] {
     DelayedFuture(delayedFuture.run().fallbackTo(delayedFuture.run()))
   }
 
-  def foreach(f: A => Unit): Unit = {
+  def foreach(f: A => Unit)(implicit ec: ExecutionContext): Unit = {
     DelayedFuture(run().foreach(f))
   }
 
-  def onComplete(f: Try[A] => Unit): Unit = {
+  def onComplete(f: Try[A] => Unit)(implicit ec: ExecutionContext): Unit = {
     run().onComplete(f)
   }
 }

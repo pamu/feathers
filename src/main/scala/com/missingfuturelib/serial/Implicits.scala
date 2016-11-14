@@ -18,14 +18,13 @@ package com.missingfuturelib.serial
 
 import com.missingfuturelib.delayedfuture.DelayedFuture
 
-import scala.collection.TraversableOnce
 import scala.concurrent.{ExecutionContext, Future}
 
-object SerialTraversableFutureImplicits {
+object Implicits {
 
-  implicit class SerialTraversableFutureImplicit[A, T <: TraversableOnce[DelayedFuture[A]]](delayedFutures: T) {
+  implicit class SerialTraversableFutureImplicit[A](delayedFutures: Seq[DelayedFuture[A]]) {
 
-    def foldLeftSerially[B](acc: B)(f: (B, A) => Future[B]): Future[B] = {
+    def foldLeftSeriallyAsync[B](acc: B)(f: (B, A) => Future[B])(implicit ec: ExecutionContext): Future[B] = {
       delayedFutures.foldLeft(Future.successful(acc)) { (partialResultFuture, currentFuture) =>
         partialResultFuture.flatMap { partialResult =>
           currentFuture.run().flatMap { current =>
@@ -35,15 +34,26 @@ object SerialTraversableFutureImplicits {
       }
     }
 
-    def serialSequence(implicit ec: ExecutionContext): Future[TraversableOnce[A]] =
+    def foldLeftSerially[B](acc: B)(f: (B, A) => B)(implicit ec: ExecutionContext): Future[B] = {
+      delayedFutures.foldLeft(Future.successful(acc)) { (partialResultFuture, currentFuture) =>
+        partialResultFuture.flatMap { partialResult =>
+          currentFuture.run().flatMap { current =>
+            Future(f(partialResult, current))
+          }
+        }
+      }
+    }
+
+
+    def serialSequence(implicit ec: ExecutionContext): Future[Seq[A]] =
       serialTraverse(_.map(identity))
 
 
-    def serialTraverse[B](transform: Future[A] => Future[B])(implicit ec: ExecutionContext): Future[Traversable[B]] = {
-      delayedFutures.foldLeft(Future.successful(Traversable.empty[B])) { (partialResultFuture, currentFuture) =>
+    def serialTraverse[B](transform: Future[A] => Future[B])(implicit ec: ExecutionContext): Future[Seq[B]] = {
+      delayedFutures.foldLeft(Future.successful(Seq.empty[B])) { (partialResultFuture, currentFuture) =>
         partialResultFuture.flatMap { partialResult =>
           transform(currentFuture.run()).map { currentResult =>
-            partialResult ++ Traversable(currentResult)
+            partialResult :+ currentResult
           }
         }
       }
