@@ -44,4 +44,8 @@ object DelayedFuture {
   def apply[A](code: => A)(implicit ec: ExecutionContext): DelayedFuture[A] = new DelayedFuture[A] {
     override val delayedFuture: () => Future[A] = () => Future(code)
   }
+
+  def successful[A](value: A) = DelayedFuture(Future.successful(value))
+
+  def failed(throwable: Throwable) = DelayedFuture(Future.failed(throwable))
 }

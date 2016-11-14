@@ -24,7 +24,7 @@ object ParallelTraversableFutureImplicits {
 
   implicit class ParallelTraversableFutureImplicit[T, A <: Traversable[Future[T]]](futures: A) {
 
-    def foldParallel[U](acc: U)(f: (U, T) => Future[U]): Future[U] = {
+    def foldLeftParallel[U](acc: U)(f: (U, T) => Future[U]): Future[U] = {
       futures.foldLeft(Future.successful(acc)) { (partialResultFuture , currentFuture) =>
         val prF = partialResultFuture
         val cf = currentFuture
@@ -33,6 +33,11 @@ object ParallelTraversableFutureImplicits {
         }
       }
     }
+
+    def foldLeftParallel[U](acc: Future[U])(f: (Future[U], Future[T]) => Future[U]): Future[U] = {
+      futures.foldLeft(acc)(f)
+    }
+
 
   }
 
