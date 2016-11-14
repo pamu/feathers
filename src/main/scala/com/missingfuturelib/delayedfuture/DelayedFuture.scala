@@ -20,19 +20,25 @@ import scala.concurrent.{ExecutionContext, Future}
 
 sealed trait DelayedFuture[A] {
 
-  val delayedFuture:  () => Future[A]
+  protected val delayedFuture:  () => Future[A]
 
   def run(): Future[A] = delayedFuture()
 
-  def map[B](f: A => B): DelayedFuture[B] = {
+  def map[B](f: A => B)(implicit ec: ExecutionContext): DelayedFuture[B] = {
     DelayedFuture(delayedFuture().map(f))
   }
 
-  def flatMap[B](f: A => DelayedFuture[B]): DelayedFuture[B] = {
+  def flatMap[B](f: A => DelayedFuture[B])(implicit ec: ExecutionContext): DelayedFuture[B] = {
     DelayedFuture(delayedFuture().flatMap(f(_).run()))
   }
 
+  def fallBackTo[B >: A](delayedFuture: DelayedFuture[B]): DelayedFuture[B] = {
+    DelayedFuture(delayedFuture.run().fallbackTo(delayedFuture.run()))
+  }
 
+  def foreach(f: A => Unit): Unit = {
+    DelayedFuture(run().foreach(f))
+  }
 }
 
 

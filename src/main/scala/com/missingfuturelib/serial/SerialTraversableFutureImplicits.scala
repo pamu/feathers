@@ -18,11 +18,13 @@ package com.missingfuturelib.serial
 
 import com.missingfuturelib.delayedfuture.DelayedFuture
 
+import scala.collection.TraversableOnce
 import scala.concurrent.{ExecutionContext, Future}
 
 object SerialTraversableFutureImplicits {
 
-  implicit class SerialTraversableFutureImplicit[A, T <: Traversable[DelayedFuture[A]]](delayedFutures: T) {
+  implicit class SerialTraversableFutureImplicit[A, T <: TraversableOnce[DelayedFuture[A]]](delayedFutures: T) {
+
     def foldLeftSerially[B](acc: B)(f: (B, A) => Future[B]): Future[B] = {
       delayedFutures.foldLeft(Future.successful(acc)) { (partialResultFuture, currentFuture) =>
         partialResultFuture.flatMap { partialResult =>
@@ -33,20 +35,19 @@ object SerialTraversableFutureImplicits {
       }
     }
 
-    def serialSequence(implicit ec: ExecutionContext): Future[Traversable[A]] =
+    def serialSequence(implicit ec: ExecutionContext): Future[TraversableOnce[A]] =
       serialTraverse(_.map(identity))
 
 
     def serialTraverse[B](transform: Future[A] => Future[B])(implicit ec: ExecutionContext): Future[Traversable[B]] = {
       delayedFutures.foldLeft(Future.successful(Traversable.empty[B])) { (partialResultFuture, currentFuture) =>
         partialResultFuture.flatMap { partialResult =>
-          transform(currentFuture.delayedFuture()).map { currentResult =>
+          transform(currentFuture.run()).map { currentResult =>
             partialResult ++ Traversable(currentResult)
           }
         }
       }
     }
-
 
   }
 

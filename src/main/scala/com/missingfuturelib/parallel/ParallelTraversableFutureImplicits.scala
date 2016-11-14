@@ -18,13 +18,13 @@ package com.missingfuturelib.parallel
 
 import com.missingfuturelib.delayedfuture.DelayedFuture
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object ParallelTraversableFutureImplicits {
 
-  implicit class ParallelTraversableFutureImplicit[T, A <: Traversable[Future[T]]](futures: A) {
+  implicit class ParallelTraversableFutureImplicit[T, A <: TraversableOnce[Future[T]]](futures: A) {
 
-    def foldLeftParallel[U](acc: U)(f: (U, T) => Future[U]): Future[U] = {
+    def foldLeftParallel[U](acc: U)(f: (U, T) => Future[U])(implicit ec: ExecutionContext): Future[U] = {
       futures.foldLeft(Future.successful(acc)) { (partialResultFuture , currentFuture) =>
         val prF = partialResultFuture
         val cf = currentFuture
@@ -34,16 +34,14 @@ object ParallelTraversableFutureImplicits {
       }
     }
 
-    def foldLeftParallel[U](acc: Future[U])(f: (Future[U], Future[T]) => Future[U]): Future[U] = {
+    def foldLeftParallel[U](acc: Future[U])(f: (Future[U], Future[T]) => Future[U])(implicit ec: ExecutionContext): Future[U] =
       futures.foldLeft(acc)(f)
-    }
-
 
   }
 
   implicit class ParallelFutureImplicit[T](delayedFuture: DelayedFuture[T]) {
 
-    def retryParallel[U](retries: Int)(future: Future[T] => Future[U]): Future[List[T]] = {
+    def retryParallel[U](retries: Int)(future: Future[T] => Future[U])(implicit ec: ExecutionContext): Future[TraversableOnce[T]] = {
       val futures = List.fill(retries)(delayedFuture.run())
       Future.sequence(futures)
     }
