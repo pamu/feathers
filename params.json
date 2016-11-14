@@ -1,6 +1,0 @@
-{
-  "name": "Missing-futures-library",
-  "tagline": "Missing Futures Library",
-  "body": "# missing-futures-library\r\nMissing Futures Library\r\n\r\nMissing Methods on Future & Promise not available in Scala library.\r\n  \r\n##### Run futures serially\r\n\r\n\r\n",
-  "note": "Don't delete this file! It's used internally to help with page regeneration."
-}
