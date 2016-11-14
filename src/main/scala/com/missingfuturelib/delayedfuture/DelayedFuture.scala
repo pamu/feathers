@@ -17,6 +17,7 @@
 package com.missingfuturelib.delayedfuture
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 sealed trait DelayedFuture[A] {
 
@@ -38,6 +39,10 @@ sealed trait DelayedFuture[A] {
 
   def foreach(f: A => Unit): Unit = {
     DelayedFuture(run().foreach(f))
+  }
+
+  def onComplete(f: Try[A] => Unit): Unit = {
+    run().onComplete(f)
   }
 }
 
