@@ -31,6 +31,8 @@ sealed trait DelayedFuture[A] {
   def flatMap[B](f: A => DelayedFuture[B]): DelayedFuture[B] = {
     DelayedFuture(delayedFuture().flatMap(f(_).run()))
   }
+
+
 }
 
 

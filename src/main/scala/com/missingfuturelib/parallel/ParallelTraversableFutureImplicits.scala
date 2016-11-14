@@ -21,12 +21,27 @@ import com.missingfuturelib.delayedfuture.DelayedFuture
 import scala.concurrent.Future
 
 object ParallelTraversableFutureImplicits {
-  implicit class ParallelTraversableFutureImplicit[A, T <: Traversable[Future[A]]](futures: T) {
+
+  implicit class ParallelTraversableFutureImplicit[T, A <: Traversable[Future[T]]](futures: A) {
+
+    def foldParallel[U](acc: U)(f: (U, T) => Future[U]): Future[U] = {
+      futures.foldLeft(Future.successful(acc)) { (partialResultFuture , currentFuture) =>
+        val prF = partialResultFuture
+        val cf = currentFuture
+        prF.flatMap { partialResult =>
+          cf.flatMap(current => f(partialResult, current))
+        }
+      }
+    }
+
   }
+
   implicit class ParallelFutureImplicit[T](delayedFuture: DelayedFuture[T]) {
-    def retryParallely[U](retries: Int)(future: Future[T] => Future[U]): Future[List[T]] = {
+
+    def retryParallel[U](retries: Int)(future: Future[T] => Future[U]): Future[List[T]] = {
       val futures = List.fill(retries)(delayedFuture.run())
       Future.sequence(futures)
     }
+
   }
 }
