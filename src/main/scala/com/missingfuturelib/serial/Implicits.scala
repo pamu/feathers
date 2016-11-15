@@ -22,7 +22,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object Implicits {
 
-  implicit class SerialTraversableFutureImplicit[A](delayedFutures: Seq[DelayedFuture[A]]) {
+  implicit class DelayedFuturesImplicit[A](delayedFutures: Seq[DelayedFuture[A]]) {
 
     def foldLeftSeriallyAsync[B](acc: B)(f: (B, A) => Future[B])(implicit ec: ExecutionContext): Future[B] = {
       delayedFutures.foldLeft(Future.successful(acc)) { (partialResultFuture, currentFuture) =>
@@ -59,6 +59,16 @@ object Implicits {
       }
     }
 
+  }
+
+  implicit class DelayedFutureImplicit[+A](delayedFuture: DelayedFuture[A]) {
+
+    def retry(retries: Int)(implicit ex: ExecutionContext): DelayedFuture[A] = {
+      delayedFuture.recoverWith { case ex =>
+        if (retries > 0) delayedFuture
+        else DelayedFuture.failed(ex)
+      }
+    }
   }
 
 }

@@ -44,6 +44,15 @@ sealed trait DelayedFuture[+A] {
   def onComplete(f: Try[A] => Unit)(implicit ec: ExecutionContext): Unit = {
     run().onComplete(f)
   }
+
+  def recoverWith[B >: A](pf: PartialFunction[Throwable, DelayedFuture[B]])(implicit ex: ExecutionContext): DelayedFuture[B] = {
+    DelayedFuture(run().recoverWith { case th => pf(th).run() })
+  }
+
+  def recover[B >: A](pf: PartialFunction[Throwable, B])(implicit ex: ExecutionContext): DelayedFuture[B] = {
+    DelayedFuture(run().recover(pf))
+  }
+
 }
 
 
