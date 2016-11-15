@@ -22,7 +22,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object Implicits {
 
-  implicit class ParallelTraversableFutureImplicit[T, A <: TraversableOnce[Future[T]]](futures: A) {
+  implicit class ParallelTraversableFutureImplicit[T](futures: Seq[Future[T]]) {
 
     def foldLeftParallel[U](acc: U)(f: (U, T) => Future[U])(implicit ec: ExecutionContext): Future[U] = {
       futures.foldLeft(Future.successful(acc)) { (partialResultFuture , currentFuture) =>
@@ -41,7 +41,7 @@ object Implicits {
 
   implicit class ParallelFutureImplicit[T](delayedFuture: DelayedFuture[T]) {
 
-    def retryParallel[U](retries: Int)(future: Future[T] => Future[U])(implicit ec: ExecutionContext): Future[TraversableOnce[T]] = {
+    def retryParallel[U](retries: Int)(future: Future[T] => Future[U])(implicit ec: ExecutionContext): Future[Seq[T]] = {
       val futures = List.fill(retries)(delayedFuture.run())
       Future.sequence(futures)
     }

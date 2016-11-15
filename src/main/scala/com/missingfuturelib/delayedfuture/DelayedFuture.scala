@@ -19,7 +19,7 @@ package com.missingfuturelib.delayedfuture
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-sealed trait DelayedFuture[A] {
+sealed trait DelayedFuture[+A] {
 
   protected val delayedFuture:  () => Future[A]
 
