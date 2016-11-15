@@ -63,10 +63,10 @@ object Implicits {
 
   implicit class DelayedFutureImplicit[+A](delayedFuture: DelayedFuture[A]) {
 
-    def retry(retries: Int)(implicit ex: ExecutionContext): DelayedFuture[A] = {
-      delayedFuture.recoverWith { case ex =>
-        if (retries > 0) delayedFuture
-        else DelayedFuture.failed(ex)
+    def retry(retries: Int)(implicit ec: ExecutionContext): DelayedFuture[A] = {
+      delayedFuture.recoverWith { case th =>
+        if (retries > 0) retry(retries - 1)(ec)
+        else DelayedFuture.failed(th)
       }
     }
   }

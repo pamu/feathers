@@ -33,32 +33,35 @@ sealed trait DelayedFuture[+A] {
     DelayedFuture(delayedFuture().flatMap(f(_).run()))
   }
 
-  def fallBackTo[B >: A](delayedFuture: DelayedFuture[B]): DelayedFuture[B] = {
+  def fallBackTo[B >: A](delayedFuture: DelayedFuture[B])(implicit ex: ExecutionContext): DelayedFuture[B] = {
     DelayedFuture(delayedFuture.run().fallbackTo(delayedFuture.run()))
   }
 
   def foreach(f: A => Unit)(implicit ec: ExecutionContext): Unit = {
-    DelayedFuture(run().foreach(f))
+    DelayedFuture(delayedFuture().foreach(f))
   }
 
   def onComplete(f: Try[A] => Unit)(implicit ec: ExecutionContext): Unit = {
-    run().onComplete(f)
+    delayedFuture().onComplete(f)
   }
 
   def recoverWith[B >: A](pf: PartialFunction[Throwable, DelayedFuture[B]])(implicit ex: ExecutionContext): DelayedFuture[B] = {
-    DelayedFuture(run().recoverWith { case th => pf(th).run() })
+    DelayedFuture(delayedFuture().recoverWith { case th => pf(th).run() })
   }
 
   def recover[B >: A](pf: PartialFunction[Throwable, B])(implicit ex: ExecutionContext): DelayedFuture[B] = {
-    DelayedFuture(run().recover(pf))
+    DelayedFuture(delayedFuture().recover(pf))
   }
 
 }
 
 
 object DelayedFuture {
+
   def apply[A](future: => Future[A]): DelayedFuture[A] = new DelayedFuture[A] {
-    override val delayedFuture: () => Future[A] =  () => future
+    override val delayedFuture: () => Future[A] = {
+      () => Try(future).recover { case th => Future.failed(th) }.getOrElse(future)
+    }
   }
 
   def apply[A](code: => A)(implicit ec: ExecutionContext): DelayedFuture[A] = new DelayedFuture[A] {
