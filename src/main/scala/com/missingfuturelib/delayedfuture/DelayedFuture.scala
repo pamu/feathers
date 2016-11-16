@@ -18,6 +18,7 @@ package com.missingfuturelib.delayedfuture
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
+import com.missingfuturelib.All._
 
 sealed trait DelayedFuture[+A] {
 
@@ -53,6 +54,13 @@ sealed trait DelayedFuture[+A] {
     DelayedFuture(delayedFuture().recover(pf))
   }
 
+  def tryMap[B](f: Try[A] => B)(implicit ec: ExecutionContext): DelayedFuture[B] = {
+    DelayedFuture(run().tryMap(f))
+  }
+
+  def tryFlatMap[B](f: Try[A] => DelayedFuture[B])(implicit ec: ExecutionContext): DelayedFuture[B] = {
+    DelayedFuture(run().tryFlatMap(f(_).run()))
+  }
 }
 
 
