@@ -22,10 +22,18 @@ import com.missingfuturelib.exceptions.AllFuturesFailedException
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success, Try}
 
+object ec {
+  implicit lazy val global = scala.concurrent.ExecutionContext.Implicits.global
+}
 
 object All {
+
   type Task[+A] = DelayedFuture[A]
+  type T[+A] = Task[A]
+
   val Task = DelayedFuture
+  val T = DelayedFuture
+
   type F[+A] = Future[A]
   val F = Future
 
