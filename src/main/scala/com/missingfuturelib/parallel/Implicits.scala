@@ -18,7 +18,8 @@ package com.missingfuturelib.parallel
 
 import com.missingfuturelib.delayedfuture.DelayedFuture
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.Try
 
 object Implicits {
 
@@ -37,6 +38,32 @@ object Implicits {
     def foldLeftParallel[U](acc: Future[U])(f: (Future[U], Future[T]) => Future[U])(implicit ec: ExecutionContext): Future[U] =
       futures.foldLeft(acc)(f)
 
+    def onAllComplete()(implicit ec: ExecutionContext): Future[Seq[Try[T]]] = {
+      futures.foldLeft(Future.successful(Seq.empty[Try[T]])) { (partialResultFuture, currentFuture) =>
+        partialResultFuture.tryFlatMap { (partialResult: Try[Seq[Try[T]]]) =>
+          currentFuture.tryMap((currentResult: Try[T]) => partialResult.map(_ :+ currentResult).getOrElse(Seq(currentResult)))
+        }
+      }
+    }
+
+  }
+
+  implicit class FutureImplicit[T](future: Future[T]) {
+    def tryFlatMap[U](f: Try[T] => Future[U]): Future[U] = {
+      val promise = Promise[U]()
+      future.onComplete { result =>
+        promise completeWith  f(result)
+      }
+      promise.future
+    }
+
+    def tryMap[U](f: Try[T] => U): Future[U] = {
+      val promise = Promise[U]()
+      future onComplete { result =>
+        promise.success(f(result))
+      }
+      promise.future
+    }
   }
 
   implicit class ParallelFutureImplicit[T](delayedFuture: DelayedFuture[T]) {
