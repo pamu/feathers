@@ -20,6 +20,7 @@ import com.missingfuturelib.delayedfuture.DelayedFuture
 import com.missingfuturelib.exceptions.AllFuturesFailedException
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 
 object ec {
@@ -42,10 +43,14 @@ object All {
     private def firstOf(f: (Promise[T], Try[T]) => Unit)(implicit ec: ExecutionContext): Future[T] = {
       val promise = Promise[T]()
       futures.foldLeft(Future.successful(())) { (partialResultFuture, currentFuture) =>
+
+        currentFuture foreach (promise trySuccess)
+
         partialResultFuture.tryFlatMap(_ => currentFuture.tryMap { currentResult =>
           f(promise, currentResult)
         })
-      }.onComplete(_ => promise.failure(AllFuturesFailedException("All futures have failed.")))
+
+      }.onComplete(_ => promise.tryFailure(AllFuturesFailedException("All futures have failed.")))
       promise.future
     }
 
@@ -53,7 +58,7 @@ object All {
       firstOf { (promise, result) =>
         result match {
           case Success(value) =>
-            promise.success(value)
+            promise.trySuccess(value)
           case _ => ()
         }
       }
@@ -63,7 +68,7 @@ object All {
       firstOf { (promise, result) =>
         result match {
           case Failure(th) =>
-            promise.failure(th)
+            promise.tryFailure(th)
           case _ => ()
         }
       }
@@ -97,7 +102,7 @@ object All {
     def tryFlatMap[U](f: Try[T] => Future[U])(implicit ec: ExecutionContext): Future[U] = {
       val promise = Promise[U]()
       future.onComplete { result =>
-        promise completeWith  f(result)
+        promise tryCompleteWith  f(result)
       }
       promise.future
     }
@@ -105,7 +110,7 @@ object All {
     def tryMap[U](f: Try[T] => U)(implicit ec: ExecutionContext): Future[U] = {
       val promise = Promise[U]()
       future onComplete { result =>
-        promise.success(f(result))
+        promise.trySuccess(f(result))
       }
       promise.future
     }
@@ -129,10 +134,10 @@ object All {
       def helper(leftOver: Int): Unit = {
         delayedFuture.run().tryForeach {
           case Success(value) =>
-            promise.success(value)
+            promise.trySuccess(value)
           case Failure(th) =>
             if (leftOver > 0) helper(leftOver - 1)
-            else promise.failure(th)
+            else promise.tryFailure(th)
         }
       }
       helper(retries)
