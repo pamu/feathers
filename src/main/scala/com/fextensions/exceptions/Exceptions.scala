@@ -16,4 +16,10 @@
 
 package com.fextensions.exceptions
 
-case class AllFuturesFailedException(msg: String) extends Exception(msg)
+
+
+case class AllFuturesCompleted(msg: String) extends Exception(msg)
+
+case class AllFuturesCompletedOrFailed(msg: String) extends Exception(msg)
+
+case class AllFuturesCompletedOrSuccessful(msg: String) extends Exception(msg)

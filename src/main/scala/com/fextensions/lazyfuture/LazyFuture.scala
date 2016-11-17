@@ -22,16 +22,16 @@ import com.fextensions.All._
 
 sealed trait LazyFuture[+A] {
 
-  protected val delayedFuture:  () => Future[A]
+  protected val lazyFuture:  () => Future[A]
 
-  def run(): Future[A] = delayedFuture()
+  def run(): Future[A] = lazyFuture()
 
   def map[B](f: A => B)(implicit ec: ExecutionContext): LazyFuture[B] = {
-    LazyFuture(delayedFuture().map(f))
+    LazyFuture(lazyFuture().map(f))
   }
 
   def flatMap[B](f: A => LazyFuture[B])(implicit ec: ExecutionContext): LazyFuture[B] = {
-    LazyFuture(delayedFuture().flatMap(f(_).run()))
+    LazyFuture(lazyFuture().flatMap(f(_).run()))
   }
 
   def fallBackTo[B >: A](delayedFuture: LazyFuture[B])(implicit ex: ExecutionContext): LazyFuture[B] = {
@@ -39,19 +39,19 @@ sealed trait LazyFuture[+A] {
   }
 
   def foreach(f: A => Unit)(implicit ec: ExecutionContext): Unit = {
-    LazyFuture(delayedFuture().foreach(f))
+    LazyFuture(lazyFuture().foreach(f))
   }
 
   def onComplete(f: Try[A] => Unit)(implicit ec: ExecutionContext): Unit = {
-    delayedFuture().onComplete(f)
+    lazyFuture().onComplete(f)
   }
 
   def recoverWith[B >: A](pf: PartialFunction[Throwable, LazyFuture[B]])(implicit ex: ExecutionContext): LazyFuture[B] = {
-    LazyFuture(delayedFuture().recoverWith { case th => pf(th).run() })
+    LazyFuture(lazyFuture().recoverWith { case th => pf(th).run() })
   }
 
   def recover[B >: A](pf: PartialFunction[Throwable, B])(implicit ex: ExecutionContext): LazyFuture[B] = {
-    LazyFuture(delayedFuture().recover(pf))
+    LazyFuture(lazyFuture().recover(pf))
   }
 
   def tryMap[B](f: Try[A] => B)(implicit ec: ExecutionContext): LazyFuture[B] = {
@@ -63,7 +63,7 @@ sealed trait LazyFuture[+A] {
   }
 
   def tryForeach[B](f: Try[A] => B)(implicit ec: ExecutionContext): Unit = {
-    delayedFuture().tryForeach(f)
+    lazyFuture().tryForeach(f)
   }
 }
 
@@ -71,13 +71,13 @@ sealed trait LazyFuture[+A] {
 object LazyFuture {
 
   def apply[A](future: => Future[A]): LazyFuture[A] = new LazyFuture[A] {
-    override val delayedFuture: () => Future[A] = {
+    override val lazyFuture: () => Future[A] = {
       () => Try(future).recover { case th => Future.failed(th) }.getOrElse(future)
     }
   }
 
   def apply[A](code: => A)(implicit ec: ExecutionContext): LazyFuture[A] = new LazyFuture[A] {
-    override val delayedFuture: () => Future[A] = () => Future(code)
+    override val lazyFuture: () => Future[A] = () => Future(code)
   }
 
   def successful[A](value: A) = LazyFuture(Future.successful(value))

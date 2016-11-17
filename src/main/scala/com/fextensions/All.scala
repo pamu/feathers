@@ -17,7 +17,7 @@
 package com.fextensions
 
 import com.fextensions.lazyfuture.LazyFuture
-import com.fextensions.exceptions.AllFuturesFailedException
+import com.fextensions.exceptions.{AllFuturesCompleted, AllFuturesCompletedOrFailed, AllFuturesCompletedOrSuccessful}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.language.postfixOps
@@ -40,30 +40,36 @@ object All {
 
   implicit class ImplicitForFutures[T](futures: Seq[Future[T]]) {
 
-    private def firstOf(f: (Promise[T], Future[T]) => Unit)(implicit ec: ExecutionContext): Future[T] = {
+    private def firstOf(f: (Promise[T], Future[T]) => Unit)(onAllComplete: Promise[T] => Unit)(implicit ec: ExecutionContext): Future[T] = {
       val promise = Promise[T]()
       futures.foldLeft(Future.successful(())) { (partialResultFuture, currentFuture) =>
         f(promise, currentFuture)
         partialResultFuture.tryFlatMap(_ => currentFuture.tryMap(_ => ()))
-      }.onComplete(_ => promise.tryFailure(AllFuturesFailedException("All futures have failed.")))
+      }.onComplete(_ => onAllComplete(promise))
       promise.future
     }
 
     def firstCompleteOf(implicit ec: ExecutionContext): Future[T] = {
       firstOf { (promise, future) =>
         future tryForeach (promise tryComplete)
+      } { promise =>
+        promise.failure(AllFuturesCompleted("Looks like all futures are already completed."))
       }
     }
 
     def firstSuccessOf(implicit ec: ExecutionContext): Future[T] = {
       firstOf { (promise, future) =>
         future onSuccess { case value => promise trySuccess value }
+      } { promise =>
+        promise.failure(AllFuturesCompletedOrFailed("Looks like all futures are already completed or All futures failed."))
       }
     }
 
     def firstFailureOf(implicit ex: ExecutionContext): Future[T] = {
       firstOf { (promise, future) =>
         future onFailure { case th => promise tryFailure th }
+      } { promise =>
+        promise.failure(AllFuturesCompletedOrSuccessful("Looks like all futures are already completed or All futures successful."))
       }
     }
 
