@@ -1,0 +1,86 @@
+/*
+ * Copyright (c) 2016 Pamu Nagarjuna (http://pamu.github.io).
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
+package com.missingfuturelib.lazyfuture
+
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
+import com.missingfuturelib.All._
+
+sealed trait LazyFuture[+A] {
+
+  protected val delayedFuture:  () => Future[A]
+
+  def run(): Future[A] = delayedFuture()
+
+  def map[B](f: A => B)(implicit ec: ExecutionContext): LazyFuture[B] = {
+    LazyFuture(delayedFuture().map(f))
+  }
+
+  def flatMap[B](f: A => LazyFuture[B])(implicit ec: ExecutionContext): LazyFuture[B] = {
+    LazyFuture(delayedFuture().flatMap(f(_).run()))
+  }
+
+  def fallBackTo[B >: A](delayedFuture: LazyFuture[B])(implicit ex: ExecutionContext): LazyFuture[B] = {
+    LazyFuture(delayedFuture.run().fallbackTo(delayedFuture.run()))
+  }
+
+  def foreach(f: A => Unit)(implicit ec: ExecutionContext): Unit = {
+    LazyFuture(delayedFuture().foreach(f))
+  }
+
+  def onComplete(f: Try[A] => Unit)(implicit ec: ExecutionContext): Unit = {
+    delayedFuture().onComplete(f)
+  }
+
+  def recoverWith[B >: A](pf: PartialFunction[Throwable, LazyFuture[B]])(implicit ex: ExecutionContext): LazyFuture[B] = {
+    LazyFuture(delayedFuture().recoverWith { case th => pf(th).run() })
+  }
+
+  def recover[B >: A](pf: PartialFunction[Throwable, B])(implicit ex: ExecutionContext): LazyFuture[B] = {
+    LazyFuture(delayedFuture().recover(pf))
+  }
+
+  def tryMap[B](f: Try[A] => B)(implicit ec: ExecutionContext): LazyFuture[B] = {
+    LazyFuture(run().tryMap(f))
+  }
+
+  def tryFlatMap[B](f: Try[A] => LazyFuture[B])(implicit ec: ExecutionContext): LazyFuture[B] = {
+    LazyFuture(run().tryFlatMap(f(_).run()))
+  }
+
+  def tryForeach[B](f: Try[A] => B)(implicit ec: ExecutionContext): Unit = {
+    delayedFuture().tryForeach(f)
+  }
+}
+
+
+object LazyFuture {
+
+  def apply[A](future: => Future[A]): LazyFuture[A] = new LazyFuture[A] {
+    override val delayedFuture: () => Future[A] = {
+      () => Try(future).recover { case th => Future.failed(th) }.getOrElse(future)
+    }
+  }
+
+  def apply[A](code: => A)(implicit ec: ExecutionContext): LazyFuture[A] = new LazyFuture[A] {
+    override val delayedFuture: () => Future[A] = () => Future(code)
+  }
+
+  def successful[A](value: A) = LazyFuture(Future.successful(value))
+
+  def failed(throwable: Throwable) = LazyFuture(Future.failed(throwable))
+}

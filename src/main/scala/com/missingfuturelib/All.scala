@@ -16,7 +16,7 @@
 
 package com.missingfuturelib
 
-import com.missingfuturelib.delayedfuture.DelayedFuture
+import com.missingfuturelib.lazyfuture.LazyFuture
 import com.missingfuturelib.exceptions.AllFuturesFailedException
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -29,11 +29,11 @@ object ec {
 
 object All {
 
-  type Task[+A] = DelayedFuture[A]
+  type Task[+A] = LazyFuture[A]
   type T[+A] = Task[A]
 
-  val Task = DelayedFuture
-  val T = DelayedFuture
+  val Task = LazyFuture
+  val T = LazyFuture
 
   type F[+A] = Future[A]
   val F = Future
@@ -115,7 +115,7 @@ object All {
     }
   }
 
-  implicit class ImplicitForDelayedFuture[T](delayedFuture: DelayedFuture[T]) {
+  implicit class ImplicitForDelayedFuture[T](delayedFuture: LazyFuture[T]) {
 
     def retryParallel[U](retries: Int)(implicit ec: ExecutionContext): Future[T] = {
       val futures = List.fill(retries)(delayedFuture.run())
@@ -139,7 +139,7 @@ object All {
 
   }
 
-  implicit class ImplicitForDelayedFutures[A](delayedFutures: Seq[DelayedFuture[A]]) {
+  implicit class ImplicitForDelayedFutures[A](delayedFutures: Seq[LazyFuture[A]]) {
 
     def foldLeftSeriallyAsync[B](acc: B)(f: (B, A) => Future[B])(implicit ec: ExecutionContext): Future[B] = {
       delayedFutures.foldLeft(Future.successful(acc)) { (partialResultFuture, currentFuture) =>
