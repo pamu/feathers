@@ -49,19 +49,19 @@ object All {
       promise.future
     }
 
-    def firstCompleteOf()(implicit ec: ExecutionContext): Future[T] = {
+    def firstCompleteOf(implicit ec: ExecutionContext): Future[T] = {
       firstOf { (promise, future) =>
         future tryForeach (promise tryComplete)
       }
     }
 
-    def firstSuccessOf()(implicit ec: ExecutionContext): Future[T] = {
+    def firstSuccessOf(implicit ec: ExecutionContext): Future[T] = {
       firstOf { (promise, future) =>
         future onSuccess { case value => promise trySuccess value }
       }
     }
 
-    def firstFailureOf()(implicit ex: ExecutionContext): Future[T] = {
+    def firstFailureOf(implicit ex: ExecutionContext): Future[T] = {
       firstOf { (promise, future) =>
         future onFailure { case th => promise tryFailure th }
       }
@@ -119,7 +119,7 @@ object All {
 
     def retryParallel[U](retries: Int)(implicit ec: ExecutionContext): Future[T] = {
       val futures = List.fill(retries)(delayedFuture.run())
-      futures.firstSuccessOf()
+      futures.firstSuccessOf
     }
 
     def retry(retries: Int)(implicit ec: ExecutionContext): Future[T] = {
