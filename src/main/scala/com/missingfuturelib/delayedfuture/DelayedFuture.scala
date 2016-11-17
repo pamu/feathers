@@ -61,6 +61,10 @@ sealed trait DelayedFuture[+A] {
   def tryFlatMap[B](f: Try[A] => DelayedFuture[B])(implicit ec: ExecutionContext): DelayedFuture[B] = {
     DelayedFuture(run().tryFlatMap(f(_).run()))
   }
+
+  def tryForeach[B](f: Try[A] => B)(implicit ec: ExecutionContext): Unit = {
+    delayedFuture().tryForeach(f)
+  }
 }
 
 
