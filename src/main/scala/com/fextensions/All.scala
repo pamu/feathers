@@ -14,10 +14,10 @@
  *    limitations under the License.
  */
 
-package com.missingfuturelib
+package com.fextensions
 
-import com.missingfuturelib.lazyfuture.LazyFuture
-import com.missingfuturelib.exceptions.AllFuturesFailedException
+import com.fextensions.lazyfuture.LazyFuture
+import com.fextensions.exceptions.AllFuturesFailedException
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.language.postfixOps
@@ -80,7 +80,7 @@ object All {
     def foldLeftParallel[U](acc: Future[U])(f: (Future[U], Future[T]) => Future[U])(implicit ec: ExecutionContext): Future[U] =
       futures.foldLeft(acc)(f)
 
-    def onAllComplete()(implicit ec: ExecutionContext): Future[Seq[Try[T]]] = {
+    def onAllComplete(implicit ec: ExecutionContext): Future[Seq[Try[T]]] = {
       futures.foldLeft(Future.successful(Seq.empty[Try[T]])) { (partialResultFuture, currentFuture) =>
         partialResultFuture.tryFlatMap { (partialResult: Try[Seq[Try[T]]]) =>
           currentFuture.tryMap((currentResult: Try[T]) => partialResult.map(_ :+ currentResult).getOrElse(Seq(currentResult)))

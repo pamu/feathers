@@ -14,6 +14,6 @@
  *    limitations under the License.
  */
 
-package com.missingfuturelib.exceptions
+package com.fextensions.exceptions
 
 case class AllFuturesFailedException(msg: String) extends Exception(msg)

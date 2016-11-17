@@ -14,11 +14,11 @@
  *    limitations under the License.
  */
 
-package com.missingfuturelib.lazyfuture
+package com.fextensions.lazyfuture
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
-import com.missingfuturelib.All._
+import com.fextensions.All._
 
 sealed trait LazyFuture[+A] {
 

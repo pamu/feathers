@@ -1,4 +1,4 @@
-name := "future-extensions"
+name := "fextensions"
 
 version := "0.0.1"
 
