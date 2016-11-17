@@ -1,4 +1,4 @@
-name := "missing-future-lib"
+name := "future-extensions"
 
 version := "0.0.1"
 
