@@ -40,37 +40,30 @@ object All {
 
   implicit class ImplicitForFutures[T](futures: Seq[Future[T]]) {
 
-    private def firstOf(f: (Promise[T], Try[T]) => Unit)(implicit ec: ExecutionContext): Future[T] = {
+    private def firstOf(f: (Promise[T], Future[T]) => Unit)(implicit ec: ExecutionContext): Future[T] = {
       val promise = Promise[T]()
       futures.foldLeft(Future.successful(())) { (partialResultFuture, currentFuture) =>
-
-        currentFuture foreach (promise trySuccess)
-
-        partialResultFuture.tryFlatMap(_ => currentFuture.tryMap { currentResult =>
-          f(promise, currentResult)
-        })
-
+        f(promise, currentFuture)
+        partialResultFuture.tryFlatMap(_ => currentFuture.tryMap(_ => ()))
       }.onComplete(_ => promise.tryFailure(AllFuturesFailedException("All futures have failed.")))
       promise.future
     }
 
+    def firstCompleteOf()(implicit ec: ExecutionContext): Future[T] = {
+      firstOf { (promise, future) =>
+        future tryForeach (promise tryComplete)
+      }
+    }
+
     def firstSuccessOf()(implicit ec: ExecutionContext): Future[T] = {
-      firstOf { (promise, result) =>
-        result match {
-          case Success(value) =>
-            promise.trySuccess(value)
-          case _ => ()
-        }
+      firstOf { (promise, future) =>
+        future onSuccess { case value => promise trySuccess value }
       }
     }
 
     def firstFailureOf()(implicit ex: ExecutionContext): Future[T] = {
-      firstOf { (promise, result) =>
-        result match {
-          case Failure(th) =>
-            promise.tryFailure(th)
-          case _ => ()
-        }
+      firstOf { (promise, future) =>
+        future onFailure { case th => promise tryFailure th }
       }
     }
 
