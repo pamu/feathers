@@ -16,8 +16,8 @@
 
 package com.fextensions
 
+import com.fextensions.exceptions.{AllFuturesCompleted, AllFuturesFailed, AllFuturesSuccessful}
 import com.fextensions.lazyfuture.LazyFuture
-import com.fextensions.exceptions.{AllFuturesCompleted, AllFuturesCompletedOrFailed, AllFuturesCompletedOrSuccessful}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.language.postfixOps
@@ -53,7 +53,7 @@ object All {
       firstOf { (promise, future) =>
         future tryForeach (promise tryComplete)
       } { promise =>
-        promise.failure(AllFuturesCompleted("Looks like all futures are already completed."))
+        promise.tryFailure(AllFuturesCompleted("Looks like all futures are already completed."))
       }
     }
 
@@ -61,7 +61,7 @@ object All {
       firstOf { (promise, future) =>
         future onSuccess { case value => promise trySuccess value }
       } { promise =>
-        promise.failure(AllFuturesCompletedOrFailed("Looks like all futures are already completed or All futures failed."))
+        promise.tryFailure(AllFuturesFailed("Looks like all futures are already completed or All futures failed."))
       }
     }
 
@@ -69,22 +69,19 @@ object All {
       firstOf { (promise, future) =>
         future onFailure { case th => promise tryFailure th }
       } { promise =>
-        promise.failure(AllFuturesCompletedOrSuccessful("Looks like all futures are already completed or All futures successful."))
+        promise.tryFailure(AllFuturesSuccessful("Looks like all futures are already completed or All futures successful."))
       }
     }
 
-    def foldLeftParallel[U](acc: U)(f: (U, T) => Future[U])(implicit ec: ExecutionContext): Future[U] = {
-      futures.foldLeft(Future.successful(acc)) { (partialResultFuture , currentFuture) =>
+    def foldLeftParallel[U](seed: U)(f: (U, Try[T]) => Future[U])(implicit ec: ExecutionContext): Future[U] = {
+      futures.foldLeft(Future.successful(seed)) { (partialResultFuture , currentFuture) =>
         val prF = partialResultFuture
         val cf = currentFuture
         prF.flatMap { partialResult =>
-          cf.flatMap(current => f(partialResult, current))
+          cf.tryFlatMap(current => f(partialResult, current))
         }
       }
     }
-
-    def foldLeftParallel[U](acc: Future[U])(f: (Future[U], Future[T]) => Future[U])(implicit ec: ExecutionContext): Future[U] =
-      futures.foldLeft(acc)(f)
 
     def onAllComplete(implicit ec: ExecutionContext): Future[Seq[Try[T]]] = {
       futures.foldLeft(Future.successful(Seq.empty[Try[T]])) { (partialResultFuture, currentFuture) =>
