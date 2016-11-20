@@ -23,3 +23,5 @@ case class AllFuturesCompleted(msg: String) extends Exception(msg)
 case class AllFuturesFailed(msg: String) extends Exception(msg)
 
 case class AllFuturesSuccessful(msg: String) extends Exception(msg)
+
+case class TimeoutException(msg: String) extends Exception(msg)

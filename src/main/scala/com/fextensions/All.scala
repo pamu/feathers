@@ -16,9 +16,11 @@
 
 package com.fextensions
 
-import com.fextensions.exceptions.{AllFuturesCompleted, AllFuturesFailed, AllFuturesSuccessful}
+import akka.actor.ActorSystem
+import com.fextensions.exceptions.{AllFuturesCompleted, AllFuturesFailed, AllFuturesSuccessful, TimeoutException}
 import com.fextensions.lazyfuture.LazyFuture
 
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
@@ -37,6 +39,8 @@ object All {
 
   type F[+A] = Future[A]
   val F = Future
+
+  val fextensionsActorSystem = ActorSystem("fextensions-actor-system")
 
   implicit class ImplicitForFutures[T](futures: Seq[Future[T]]) {
 
@@ -137,6 +141,15 @@ object All {
         }
       }
       helper(retries)
+      promise.future
+    }
+
+    def timeout(duration: FiniteDuration)(implicit ec: ExecutionContext): Future[T] = {
+      val promise = Promise[T]()
+      delayedFuture.run().onComplete(promise tryComplete)
+      All.fextensionsActorSystem.scheduler.scheduleOnce(duration) {
+        promise tryFailure TimeoutException("timed out future couldn't be executed in given duration.")
+      }
       promise.future
     }
 
