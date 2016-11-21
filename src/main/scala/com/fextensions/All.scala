@@ -161,11 +161,11 @@ object All {
 
   implicit class ImplicitForDelayedFutures[A](lazyFutures: Seq[LazyFuture[A]]) {
 
-    def foldLeftSerially[B](acc: B)(f: (Try[B], Try[A]) => Future[B])(implicit ec: ExecutionContext): Future[B] = {
+    def foldLeftSerially[B](acc: B)(f: (Try[B], Try[A]) => LazyFuture[B])(implicit ec: ExecutionContext): LazyFuture[B] = {
 
-      lazyFutures.foldLeft(Future.successful(acc)) { (partialResultFuture, currentFuture) =>
+      lazyFutures.foldLeft(LazyFuture.successful(acc)) { (partialResultFuture, currentFuture) =>
         partialResultFuture.tryFlatMap { partialResult =>
-          currentFuture.run().tryFlatMap { current => f(partialResult, current) }}
+          currentFuture.tryFlatMap { current => f(partialResult, current) }}
       }
 
     }
