@@ -120,19 +120,23 @@ object All {
         f(result)
       }
     }
+
+    def timeout(duration: FiniteDuration)(implicit ec: ExecutionContext): Future[T] = {
+      Task(future).timeout(duration)
+    }
   }
 
-  implicit class ImplicitForDelayedFuture[T](delayedFuture: LazyFuture[T]) {
+  implicit class ImplicitForDelayedFuture[T](lazyFuture: LazyFuture[T]) {
 
     def retryParallel[U](retries: Int)(implicit ec: ExecutionContext): Future[T] = {
-      val futures = List.fill(retries)(delayedFuture.run())
+      val futures = List.fill(retries)(lazyFuture.run())
       futures.firstSuccessOf
     }
 
     def retry(retries: Int)(implicit ec: ExecutionContext): Future[T] = {
       val promise = Promise[T]()
       def helper(leftOver: Int): Unit = {
-        delayedFuture.run().tryForeach {
+        lazyFuture.run().tryForeach {
           case Success(value) =>
             promise.trySuccess(value)
           case Failure(th) =>
@@ -146,7 +150,7 @@ object All {
 
     def timeout(duration: FiniteDuration)(implicit ec: ExecutionContext): Future[T] = {
       val promise = Promise[T]()
-      delayedFuture.run().onComplete(promise tryComplete)
+      lazyFuture.run().onComplete(promise tryComplete)
       All.fextensionsActorSystem.scheduler.scheduleOnce(duration) {
         promise tryFailure TimeoutException("timed out future couldn't be executed in given duration.")
       }
@@ -155,10 +159,10 @@ object All {
 
   }
 
-  implicit class ImplicitForDelayedFutures[A](delayedFutures: Seq[LazyFuture[A]]) {
+  implicit class ImplicitForDelayedFutures[A](lazyFutures: Seq[LazyFuture[A]]) {
 
     def foldLeftSeriallyAsync[B](acc: B)(f: (B, A) => Future[B])(implicit ec: ExecutionContext): Future[B] = {
-      delayedFutures.foldLeft(Future.successful(acc)) { (partialResultFuture, currentFuture) =>
+      lazyFutures.foldLeft(Future.successful(acc)) { (partialResultFuture, currentFuture) =>
         partialResultFuture.flatMap { partialResult =>
           currentFuture.run().flatMap { current =>
             f(partialResult, current)
@@ -168,7 +172,7 @@ object All {
     }
 
     def foldLeftSerially[B](acc: B)(f: (B, A) => B)(implicit ec: ExecutionContext): Future[B] = {
-      delayedFutures.foldLeft(Future.successful(acc)) { (partialResultFuture, currentFuture) =>
+      lazyFutures.foldLeft(Future.successful(acc)) { (partialResultFuture, currentFuture) =>
         partialResultFuture.flatMap { partialResult =>
           currentFuture.run().flatMap { current =>
             Future(f(partialResult, current))
