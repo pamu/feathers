@@ -77,11 +77,11 @@ object All {
       }
     }
 
-    def foldLeftParallel[U](seed: U)(f: (U, Try[T]) => Future[U])(implicit ec: ExecutionContext): Future[U] = {
+    def foldLeftParallel[U](seed: U)(f: (Try[U], Try[T]) => Future[U])(implicit ec: ExecutionContext): Future[U] = {
       futures.foldLeft(Future.successful(seed)) { (partialResultFuture , currentFuture) =>
         val prF = partialResultFuture
         val cf = currentFuture
-        prF.flatMap { partialResult =>
+        prF.tryFlatMap { partialResult =>
           cf.tryFlatMap(current => f(partialResult, current))
         }
       }
@@ -161,24 +161,13 @@ object All {
 
   implicit class ImplicitForDelayedFutures[A](lazyFutures: Seq[LazyFuture[A]]) {
 
-    def foldLeftSeriallyAsync[B](acc: B)(f: (B, A) => Future[B])(implicit ec: ExecutionContext): Future[B] = {
-      lazyFutures.foldLeft(Future.successful(acc)) { (partialResultFuture, currentFuture) =>
-        partialResultFuture.flatMap { partialResult =>
-          currentFuture.run().flatMap { current =>
-            f(partialResult, current)
-          }
-        }
-      }
-    }
+    def foldLeftSerially[B](acc: B)(f: (Try[B], Try[A]) => Future[B])(implicit ec: ExecutionContext): Future[B] = {
 
-    def foldLeftSerially[B](acc: B)(f: (B, A) => B)(implicit ec: ExecutionContext): Future[B] = {
       lazyFutures.foldLeft(Future.successful(acc)) { (partialResultFuture, currentFuture) =>
-        partialResultFuture.flatMap { partialResult =>
-          currentFuture.run().flatMap { current =>
-            Future(f(partialResult, current))
-          }
-        }
+        partialResultFuture.tryFlatMap { partialResult =>
+          currentFuture.run().tryFlatMap { current => f(partialResult, current) }}
       }
+
     }
 
 
@@ -187,7 +176,7 @@ object All {
 
 
     def serialTraverse[B](transform: Future[A] => Future[B])(implicit ec: ExecutionContext): Future[Seq[B]] = {
-      delayedFutures.foldLeft(Future.successful(Seq.empty[B])) { (partialResultFuture, currentFuture) =>
+      lazyFutures.foldLeft(Future.successful(Seq.empty[B])) { (partialResultFuture, currentFuture) =>
         partialResultFuture.flatMap { partialResult =>
           transform(currentFuture.run()).map { currentResult =>
             partialResult :+ currentResult
