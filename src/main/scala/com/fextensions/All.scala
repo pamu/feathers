@@ -152,7 +152,7 @@ object All {
       val promise = Promise[T]()
       lazyFuture.run().onComplete(promise tryComplete)
       All.fextensionsActorSystem.scheduler.scheduleOnce(duration) {
-        promise tryFailure TimeoutException("timed out future couldn't be executed in given duration.")
+        promise tryFailure TimeoutException(s"Future timeout after ${duration.toString()}")
       }
       promise.future
     }
