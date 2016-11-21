@@ -65,7 +65,7 @@ object All {
       firstOf { (promise, future) =>
         future onSuccess { case value => promise trySuccess value }
       } { promise =>
-        promise.tryFailure(AllFuturesFailed("Looks like all futures are already completed or All futures failed."))
+        promise.tryFailure(AllFuturesFailed("All futures failed."))
       }
     }
 
@@ -73,7 +73,7 @@ object All {
       firstOf { (promise, future) =>
         future onFailure { case th => promise tryFailure th }
       } { promise =>
-        promise.tryFailure(AllFuturesSuccessful("Looks like all futures are already completed or All futures successful."))
+        promise.tryFailure(AllFuturesSuccessful("All futures successful."))
       }
     }
 
