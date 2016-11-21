@@ -39,7 +39,7 @@ sealed trait LazyFuture[+A] {
   }
 
   def foreach(f: A => Unit)(implicit ec: ExecutionContext): Unit = {
-    LazyFuture(lazyFuture().foreach(f))
+   lazyFuture().foreach(f)
   }
 
   def onComplete(f: Try[A] => Unit)(implicit ec: ExecutionContext): Unit = {
