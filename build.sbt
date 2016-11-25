@@ -6,7 +6,7 @@ scalaVersion := "2.11.8"
 
 libraryDependencies ++= Seq("com.typesafe.akka" % "akka-actor_2.11" % "2.4.13")
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0" % "test"
+libraryDependencies ++= Seq("org.scalatest" %% "scalatest" % "3.0.0" % "test")
 
 libraryDependencies += "com.lihaoyi" % "ammonite" % "0.8.0" % "test" cross CrossVersion.full
 
