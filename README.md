@@ -2,6 +2,12 @@
 
 Handy operations on future which are not available in standard scala library
 
+Index
+
+1. [Timeout](#timeout) Timeout after given duration if future does not complete
+
+2. [tryMap](#trymap) Handle both success and failure cases with map, no need to use recover.
+
 ## timeout
 
 Helps timeout an future if its running for too long
@@ -45,7 +51,7 @@ longRunningWork.timeout(2 seconds).fallbackTo(fastFuture)
 
 ## tryMap 
 
-map on future only helps to handle the positive case when the future is sucessful. But tryMap helps
+map on future only helps to handle the positive case when the future is successful. But tryMap helps
 handle both the success and failure case without using recover
 
 ### tryMap implementation:
