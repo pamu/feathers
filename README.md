@@ -8,6 +8,8 @@ Index
 
 2. [tryMap](#trymap) Handle both success and failure cases with map, no need to use recover.
 
+3. [tryFlatMap](#tryflatmap) flatMap which handles both the success and failure case.
+
 ## timeout
 
 Helps timeout an future if its running for too long
@@ -86,6 +88,45 @@ F {
 }
 
 //No need for recover 
+
+
+```
+
+## tryFlatMap
+
+flatMap defined on future only allows you to  
+
+### tryFlatMap implementation:
+
+```scala
+
+def tryFlatMap[U](f: Try[T] => Future[U])(implicit ec: ExecutionContext): Future[U] = {
+  val promise = Promise[U]()
+  future.onComplete { result =>
+    promise tryCompleteWith  f(result)
+  }
+  promise.future
+}
+
+```
+
+### usage:
+
+```scala
+
+import com.fextensions.ec.global //execution context
+import com.fextensions.All._ //get all methods and aliases into scope
+import scala.util._
+
+val f = F {
+  Thread.sleep(10000)
+  1
+}
+
+f.tryFlatMap {
+ case Success(value) => F.successful(value)
+ case Failure(th) => F.successful(0)
+}
 
 
 ```
