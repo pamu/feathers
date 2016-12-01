@@ -1,5 +1,7 @@
 import org.scalatest.{FlatSpec, Matchers}
 
+//import scala.concurrent.ExecutionContext
+
 /*
  * Copyright (c) 2016 Pamu Nagarjuna (http://pamu.github.io).
  *
@@ -16,9 +18,7 @@ import org.scalatest.{FlatSpec, Matchers}
  *    limitations under the License.
  */
 
-/**
-  * Created by pnagarjuna on 11/11/16.
-  */
+
 
 class SampleTest extends FlatSpec with Matchers {
   "a" should "be equal to 1" in {

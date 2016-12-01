@@ -21,12 +21,12 @@ import com.fextensions.exceptions.{AllFuturesCompleted, AllFuturesFailed, AllFut
 import com.fextensions.lazyfuture.LazyFuture
 
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future, Promise}
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 
 object ec {
-  implicit lazy val global = scala.concurrent.ExecutionContext.Implicits.global
+  implicit lazy val global: ExecutionContextExecutor = scala.concurrent.ExecutionContext.Implicits.global
 }
 
 object All {
@@ -40,7 +40,11 @@ object All {
   type F[+A] = Future[A]
   val F = Future
 
-  val fextensionsActorSystem = ActorSystem("fextensions-actor-system")
+  object NameConstants {
+    final val DEFAULT_ACTION_SYSTEM_NAME = "fextensions-actor-system"
+  }
+
+  val fextensionsActorSystem = ActorSystem(NameConstants.DEFAULT_ACTION_SYSTEM_NAME)
 
   implicit class ImplicitForFutures[T](futures: Seq[Future[T]]) {
 

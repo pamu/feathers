@@ -10,6 +10,8 @@ Index
 
 3. [tryFlatMap](#tryflatmap) flatMap which handles both the success and failure case.
 
+4. [retry](#retry) retry a future till it is successful.
+
 ## timeout
 
 Helps timeout an future if its running for too long
@@ -127,6 +129,50 @@ f.tryFlatMap {
  case Success(value) => F.successful(value)
  case Failure(th) => F.successful(0)
 }
+
+
+```
+
+## retry
+
+retry a future until successful providing max retry limit
+
+### retry implementation
+
+```scala
+
+    def retry(retries: Int)(implicit ec: ExecutionContext): Future[T] = {
+      val promise = Promise[T]()
+      def helper(leftOver: Int): Unit = {
+        lazyFuture.run().tryForeach {
+          case Success(value) =>
+            promise.trySuccess(value)
+          case Failure(th) =>
+            if (leftOver > 0) helper(leftOver - 1)
+            else promise.tryFailure(th)
+        }
+      }
+      helper(retries)
+      promise.future
+    }
+
+```
+
+## usage:
+
+```scala                                                             
+
+import com.fextensions.ec.global //execution context                  
+import com.fextensions.All._ //get all methods and aliases into scope 
+import scala.util._
+
+val f =
+F {
+  doSomeStuff()
+}
+
+
+f.retry(3) //tries for 3 times if f keeps on failing
 
 
 ```
