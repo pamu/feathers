@@ -22,6 +22,179 @@
       <h1>
 <a id="fextensions-future-extensions" class="anchor" href="#fextensions-future-extensions" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>fextensions (Future extensions)</h1>
 
+<p>Handy operations on future which are not available in standard scala library</p>
+
+<p>Index</p>
+
+<ol>
+<li><p><a href="#timeout">Timeout</a> Timeout after given duration if future does not complete</p></li>
+<li><p><a href="#trymap">tryMap</a> Handle both success and failure cases with map, no need to use recover.</p></li>
+<li><p><a href="#tryflatmap">tryFlatMap</a> flatMap which handles both the success and failure case.</p></li>
+<li><p><a href="#retry">retry</a> retry a future till it is successful.</p></li>
+</ol>
+
+<h2>
+<a id="timeout" class="anchor" href="#timeout" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>timeout</h2>
+
+<p>Helps timeout an future if its running for too long</p>
+
+<h3>
+<a id="timeout-implementation" class="anchor" href="#timeout-implementation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>timeout implementation:</h3>
+
+<div class="highlight highlight-source-scala"><pre>
+<span class="pl-k">def</span> <span class="pl-en">timeout</span>(<span class="pl-v">duration</span>: <span class="pl-en">FiniteDuration</span>)(<span class="pl-k">implicit</span> <span class="pl-v">ec</span>: <span class="pl-en">ExecutionContext</span>)<span class="pl-k">:</span> <span class="pl-en">Future</span>[<span class="pl-en">T</span>] <span class="pl-k">=</span> {
+  <span class="pl-k">val</span> <span class="pl-en">promise</span> <span class="pl-k">=</span> <span class="pl-en">Promise</span>[<span class="pl-en">T</span>]()
+  lazyFuture.run().onComplete(promise tryComplete)
+  <span class="pl-en">All</span>.fextensionsActorSystem.scheduler.scheduleOnce(duration) {
+    promise tryFailure <span class="pl-en">TimeoutException</span>(s<span class="pl-s"><span class="pl-pds">"</span>Future timeout after ${duration.toString()}<span class="pl-pds">"</span></span>)
+  }
+  promise.future
+}
+</pre></div>
+
+<h3>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>usage:</h3>
+
+<div class="highlight highlight-source-scala"><pre><span class="pl-k">import</span> <span class="pl-v">com.fextensions.All.</span><span class="pl-v">_</span>
+<span class="pl-k">import</span> <span class="pl-v">com.fextensions.ec.</span><span class="pl-v">global</span>
+<span class="pl-k">import</span> <span class="pl-v">scala.concurrent.duration.</span><span class="pl-v">_</span>
+
+<span class="pl-c">//F is a shortcut for future</span>
+<span class="pl-k">val</span> <span class="pl-en">longRunningWork</span> <span class="pl-k">=</span> <span class="pl-en">F</span> {
+  <span class="pl-en">Thread</span>.sleep(<span class="pl-c1">10000</span>)
+}
+
+<span class="pl-k">val</span> <span class="pl-en">fastFuture</span> <span class="pl-k">=</span> <span class="pl-en">F</span> {
+ <span class="pl-en">Thread</span>.sleep(<span class="pl-c1">1000</span>)
+}
+
+longRunningWork.timeout(<span class="pl-c1">2</span> seconds).fallbackTo(fastFuture)
+
+<span class="pl-c">//The above call will fallback to fastFuture if longRunningWork takes more than 2 seconds.</span>
+
+</pre></div>
+
+<h2>
+<a id="trymap" class="anchor" href="#trymap" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>tryMap</h2>
+
+<p>map on future only helps to handle the positive case when the future is successful. But tryMap helps
+handle both the success and failure case without using recover</p>
+
+<h3>
+<a id="trymap-implementation" class="anchor" href="#trymap-implementation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>tryMap implementation:</h3>
+
+<div class="highlight highlight-source-scala"><pre>
+<span class="pl-k">def</span> <span class="pl-en">tryMap</span>[<span class="pl-en">U</span>](<span class="pl-v">f</span>: <span class="pl-en">Try</span>[<span class="pl-en">T</span>] <span class="pl-k">=&gt;</span> <span class="pl-en">U</span>)(<span class="pl-k">implicit</span> <span class="pl-v">ec</span>: <span class="pl-en">ExecutionContext</span>)<span class="pl-k">:</span> <span class="pl-en">Future</span>[<span class="pl-en">U</span>] <span class="pl-k">=</span> {
+  <span class="pl-k">val</span> <span class="pl-en">promise</span> <span class="pl-k">=</span> <span class="pl-en">Promise</span>[<span class="pl-en">U</span>]()
+  future onComplete { result <span class="pl-k">=&gt;</span>
+    promise.trySuccess(f(result))
+  }
+  promise.future
+}
+</pre></div>
+
+<h3>
+<a id="usage-1" class="anchor" href="#usage-1" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>usage:</h3>
+
+<div class="highlight highlight-source-scala"><pre><span class="pl-c">//F is a shortcut for Future</span>
+
+<span class="pl-k">import</span> <span class="pl-v">com.fextensions.ec.</span><span class="pl-v">global </span><span class="pl-c">//execution context</span>
+<span class="pl-k">import</span> <span class="pl-v">com.fextensions.All.</span><span class="pl-v">_ </span><span class="pl-c">//get all methods and aliases into scope</span>
+<span class="pl-k">import</span> <span class="pl-v">scala.util.</span><span class="pl-v">_</span>
+
+<span class="pl-en">F</span> {
+  <span class="pl-en">Thread</span>.sleep(<span class="pl-c1">10000</span>)
+  <span class="pl-c1">1L</span>
+}.tryMap {
+ <span class="pl-k">case</span> <span class="pl-en">Success</span>(value) <span class="pl-k">=&gt;</span> <span class="pl-c">// handle positive case</span>
+ <span class="pl-k">case</span> <span class="pl-en">Failure</span>(th) <span class="pl-k">=&gt;</span> <span class="pl-c">//handle negative case</span>
+}
+
+<span class="pl-c">//No need for recover </span>
+
+</pre></div>
+
+<h2>
+<a id="tryflatmap" class="anchor" href="#tryflatmap" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>tryFlatMap</h2>
+
+<p>flatMap defined on future only allows you to  </p>
+
+<h3>
+<a id="tryflatmap-implementation" class="anchor" href="#tryflatmap-implementation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>tryFlatMap implementation:</h3>
+
+<div class="highlight highlight-source-scala"><pre>
+<span class="pl-k">def</span> <span class="pl-en">tryFlatMap</span>[<span class="pl-en">U</span>](<span class="pl-v">f</span>: <span class="pl-en">Try</span>[<span class="pl-en">T</span>] <span class="pl-k">=&gt;</span> <span class="pl-en">Future</span>[<span class="pl-en">U</span>])(<span class="pl-k">implicit</span> <span class="pl-v">ec</span>: <span class="pl-en">ExecutionContext</span>)<span class="pl-k">:</span> <span class="pl-en">Future</span>[<span class="pl-en">U</span>] <span class="pl-k">=</span> {
+  <span class="pl-k">val</span> <span class="pl-en">promise</span> <span class="pl-k">=</span> <span class="pl-en">Promise</span>[<span class="pl-en">U</span>]()
+  future.onComplete { result <span class="pl-k">=&gt;</span>
+    promise tryCompleteWith  f(result)
+  }
+  promise.future
+}
+</pre></div>
+
+<h3>
+<a id="usage-2" class="anchor" href="#usage-2" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>usage:</h3>
+
+<div class="highlight highlight-source-scala"><pre>
+<span class="pl-k">import</span> <span class="pl-v">com.fextensions.ec.</span><span class="pl-v">global </span><span class="pl-c">//execution context</span>
+<span class="pl-k">import</span> <span class="pl-v">com.fextensions.All.</span><span class="pl-v">_ </span><span class="pl-c">//get all methods and aliases into scope</span>
+<span class="pl-k">import</span> <span class="pl-v">scala.util.</span><span class="pl-v">_</span>
+
+<span class="pl-k">val</span> <span class="pl-en">f</span> <span class="pl-k">=</span> <span class="pl-en">F</span> {
+  <span class="pl-en">Thread</span>.sleep(<span class="pl-c1">10000</span>)
+  <span class="pl-c1">1</span>
+}
+
+f.tryFlatMap {
+ <span class="pl-k">case</span> <span class="pl-en">Success</span>(value) <span class="pl-k">=&gt;</span> <span class="pl-en">F</span>.successful(value)
+ <span class="pl-k">case</span> <span class="pl-en">Failure</span>(th) <span class="pl-k">=&gt;</span> <span class="pl-en">F</span>.successful(<span class="pl-c1">0</span>)
+}
+
+</pre></div>
+
+<h2>
+<a id="retry" class="anchor" href="#retry" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>retry</h2>
+
+<p>retry a future until successful providing max retry limit</p>
+
+<h3>
+<a id="retry-implementation" class="anchor" href="#retry-implementation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>retry implementation</h3>
+
+<div class="highlight highlight-source-scala"><pre>
+    <span class="pl-k">def</span> <span class="pl-en">retry</span>(<span class="pl-v">retries</span>: <span class="pl-k">Int</span>)(<span class="pl-k">implicit</span> <span class="pl-v">ec</span>: <span class="pl-en">ExecutionContext</span>)<span class="pl-k">:</span> <span class="pl-en">Future</span>[<span class="pl-en">T</span>] <span class="pl-k">=</span> {
+      <span class="pl-k">val</span> <span class="pl-en">promise</span> <span class="pl-k">=</span> <span class="pl-en">Promise</span>[<span class="pl-en">T</span>]()
+      <span class="pl-k">def</span> <span class="pl-en">helper</span>(<span class="pl-v">leftOver</span>: <span class="pl-k">Int</span>)<span class="pl-k">:</span> <span class="pl-k">Unit</span> <span class="pl-k">=</span> {
+        lazyFuture.run().tryForeach {
+          <span class="pl-k">case</span> <span class="pl-en">Success</span>(value) <span class="pl-k">=&gt;</span>
+            promise.trySuccess(value)
+          <span class="pl-k">case</span> <span class="pl-en">Failure</span>(th) <span class="pl-k">=&gt;</span>
+            <span class="pl-k">if</span> (leftOver <span class="pl-k">&gt;</span> <span class="pl-c1">0</span>) helper(leftOver <span class="pl-k">-</span> <span class="pl-c1">1</span>)
+            <span class="pl-k">else</span> promise.tryFailure(th)
+        }
+      }
+      helper(retries)
+      promise.future
+    }
+</pre></div>
+
+<h2>
+<a id="usage-3" class="anchor" href="#usage-3" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>usage:</h2>
+
+<div class="highlight highlight-source-scala"><pre>
+<span class="pl-k">import</span> <span class="pl-v">com.fextensions.ec.</span><span class="pl-v">global </span><span class="pl-c">//execution context                  </span>
+<span class="pl-k">import</span> <span class="pl-v">com.fextensions.All.</span><span class="pl-v">_ </span><span class="pl-c">//get all methods and aliases into scope </span>
+<span class="pl-k">import</span> <span class="pl-v">scala.util.</span><span class="pl-v">_</span>
+
+<span class="pl-k">val</span> <span class="pl-en">f</span> <span class="pl-k">=</span>
+<span class="pl-en">F</span> {
+  doSomeStuff()
+}
+
+
+f.retry(<span class="pl-c1">3</span>) <span class="pl-c">//tries for 3 times if f keeps on failing</span>
+
+</pre></div>
+
       <footer class="site-footer">
         <span class="site-footer-owner"><a href="https://github.com/pamu/fextensions">fextensions</a> is maintained by <a href="https://github.com/pamu">pamu</a>.</span>
 
