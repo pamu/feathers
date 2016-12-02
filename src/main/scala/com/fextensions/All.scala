@@ -21,12 +21,12 @@ import com.fextensions.exceptions.{AllFuturesCompleted, AllFuturesFailed, AllFut
 import com.fextensions.lazyfuture.LazyFuture
 
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future, Promise}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 
 object ec {
-  implicit lazy val global: ExecutionContextExecutor = scala.concurrent.ExecutionContext.Implicits.global
+  implicit lazy val global: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 }
 
 object All {
@@ -67,7 +67,7 @@ object All {
 
     def firstSuccessOf(implicit ec: ExecutionContext): Future[T] = {
       firstOf { (promise, future) =>
-        future onSuccess { case value => promise trySuccess value }
+        future foreach (promise trySuccess)
       } { promise =>
         promise.tryFailure(AllFuturesFailed("All futures failed."))
       }
@@ -75,7 +75,7 @@ object All {
 
     def firstFailureOf(implicit ex: ExecutionContext): Future[T] = {
       firstOf { (promise, future) =>
-        future onFailure { case th => promise tryFailure th }
+        future.failed.foreach(promise tryFailure)
       } { promise =>
         promise.tryFailure(AllFuturesSuccessful("All futures successful."))
       }
