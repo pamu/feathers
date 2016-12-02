@@ -1,5 +1,4 @@
-# fextensions (Future extensions) [![](https://jitpack.io/v/pamu/fextensions.svg)](https://jitpack.io/#pamu/fextensions)
-
+# fextensions (Future extensions)
 Handy operations on future which are not available in standard scala library. 
 
 
@@ -9,7 +8,7 @@ Add fextensions as a library dependency
 
 resolvers += "jitpack" at "https://jitpack.io"
         
-libraryDependencies += "com.github.pamu" % "fextensions" % "0.0.1-v1-SNAPSHOT"
+libraryDependencies += "com.github.pamu" % "fextensions" % "v0.0.1"	
 
 ```
 
