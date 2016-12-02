@@ -3,7 +3,7 @@
 Handy operations on future which are not available in standard scala library. 
 
 
-add fextensions as a library dependency
+Add fextensions as a library dependency
 
 ```scala
 
