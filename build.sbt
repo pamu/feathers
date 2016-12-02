@@ -1,6 +1,6 @@
 name := "fextensions"
 
-version := "0.0.1-SNAPSHOT"
+version := "0.0.1-v1-SNAPSHOT"
 
 scalaVersion := "2.11.8"
 
