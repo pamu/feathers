@@ -13,17 +13,17 @@ libraryDependencies += "com.github.pamu" % "fextensions" % "0.0.1-v1-SNAPSHOT"
 
 ```
 
-Index
+Documentation
 
-0. [onAllComplete][#onallcomplete] Wait in a non blocking way till all futures are complete
+1. [onAllComplete](#onallcomplete) Wait in a non blocking way till all futures are complete
 
-1. [Timeout](#timeout) Timeout after given duration if future does not complete
+2. [Timeout](#timeout) Timeout after given duration if future does not complete
 
-2. [tryMap](#trymap) Handle both success and failure cases with map, no need to use recover.
+3. [tryMap](#trymap) Handle both success and failure cases with map, no need to use recover.
 
-3. [tryFlatMap](#tryflatmap) flatMap which handles both the success and failure case.
+4. [tryFlatMap](#tryflatmap) flatMap which handles both the success and failure case.
 
-4. [retry](#retry) retry a future till it is successful.
+5. [retry](#retry) retry a future till it is successful.
 
 ## onAllComplete
 
