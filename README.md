@@ -4,6 +4,8 @@ Handy operations on future which are not available in standard scala library
 
 Index
 
+0. [onAllComplete][#onallcomplete] Wait in a non blocking way till all futures are complete
+
 1. [Timeout](#timeout) Timeout after given duration if future does not complete
 
 2. [tryMap](#trymap) Handle both success and failure cases with map, no need to use recover.
@@ -12,6 +14,49 @@ Index
 
 4. [retry](#retry) retry a future till it is successful.
 
+## onAllComplete
+
+Wait in a non blocking way till all futures are complete
+
+### onAllComplete implementation: 
+
+```scala
+
+   def onAllComplete(implicit ec: ExecutionContext): Future[Seq[Try[T]]] = {
+      futures.foldLeft(Future.successful(Seq.empty[Try[T]])) { (partialResultFuture, currentFuture) =>
+        partialResultFuture.tryFlatMap { (partialResult: Try[Seq[Try[T]]]) =>
+          currentFuture.tryMap((currentResult: Try[T]) => partialResult.map(_ :+ currentResult).getOrElse(Seq(currentResult)))
+        }
+      }
+    }
+
+```
+
+### usage:
+
+```scala
+
+import com.fextensions.All._
+import com.fextensions.ec._
+import scala.concurrent.duration._
+
+val f = F {
+ Thread.sleep(1000)
+ 1
+} //completes after 1 sec
+
+val g = F {
+ Thread.sleep(5000)
+}
+//completes after 5 seconds
+ 
+val r = List(f, g)
+
+r.onAllComplete onComplete println
+
+//r completes after 5 seconds after all futures are completed 
+
+```
 ## timeout
 
 Helps timeout an future if its running for too long
