@@ -1,6 +1,17 @@
-# fextensions (Future extensions)
+# fextensions (Future extensions) [![](https://jitpack.io/v/pamu/fextensions.svg)](https://jitpack.io/#pamu/fextensions)
 
-Handy operations on future which are not available in standard scala library
+Handy operations on future which are not available in standard scala library. 
+
+
+add fextensions as a library dependency
+
+```scala
+
+resolvers += "jitpack" at "https://jitpack.io"
+        
+libraryDependencies += "com.github.pamu" % "fextensions" % "0.0.1-v1-SNAPSHOT"
+
+```
 
 Index
 
