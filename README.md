@@ -8,7 +8,7 @@ Add fextensions as a library dependency
 
 resolvers += "jitpack" at "https://jitpack.io"
         
-libraryDependencies += "com.github.pamu" % "fextensions" % "v0.0.1"	
+libraryDependencies += "com.github.pamu" %% "fextensions" % "0.0.1"	
 
 ```
 
