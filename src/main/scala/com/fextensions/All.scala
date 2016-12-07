@@ -100,7 +100,7 @@ object All {
     }
 
     def onAllComplete(implicit ec: ExecutionContext): Future[Seq[Try[T]]] = {
-      onAllComplete(identity(_))
+      onAllComplete(value => identity(value))
     }
 
     def onEachCompletion[U](f: Try[T] => Future[U])(implicit ec: ExecutionContext): Future[Seq[Try[T]]] = {
