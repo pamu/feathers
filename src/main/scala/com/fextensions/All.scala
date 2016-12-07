@@ -82,7 +82,7 @@ object All {
     }
 
     def foldLeftParallel[U](seed: U)(f: (Try[U], Try[T]) => Future[U])(implicit ec: ExecutionContext): Future[U] = {
-      futures.foldLeft(Future.successful(seed)) { (partialResultFuture , currentFuture) =>
+      futures.foldLeft(Future.successful(seed)) { (partialResultFuture, currentFuture) =>
         val prF = partialResultFuture
         val cf = currentFuture
         prF.tryFlatMap { partialResult =>
@@ -91,10 +91,27 @@ object All {
       }
     }
 
+    def onAllComplete[U](f: Future[T] => Future[U])(implicit ec: ExecutionContext): Future[Seq[Try[U]]] = {
+      futures.foldLeft(Future.successful(Seq.empty[Try[U]])) { (partialResultFuture, currentFuture) =>
+        partialResultFuture.tryFlatMap { (partialResult: Try[Seq[Try[U]]]) =>
+          f(currentFuture).tryMap((currentResult: Try[U]) => partialResult.map(_ :+ currentResult).getOrElse(Seq(currentResult)))
+        }
+      }
+    }
+
     def onAllComplete(implicit ec: ExecutionContext): Future[Seq[Try[T]]] = {
-      futures.foldLeft(Future.successful(Seq.empty[Try[T]])) { (partialResultFuture, currentFuture) =>
-        partialResultFuture.tryFlatMap { (partialResult: Try[Seq[Try[T]]]) =>
-          currentFuture.tryMap((currentResult: Try[T]) => partialResult.map(_ :+ currentResult).getOrElse(Seq(currentResult)))
+      onAllComplete(identity(_))
+    }
+
+    def onEachCompletion[U](f: Try[T] => Future[U])(implicit ec: ExecutionContext): Future[Seq[Try[T]]] = {
+      onAllComplete { currentFuture =>
+        currentFuture.tryFlatMap { value =>
+          f(value).tryFlatMap { _ =>
+            value match {
+              case Success(successValue) => Future.successful(successValue)
+              case Failure(th) => Future.failed(th)
+            }
+          }
         }
       }
     }
@@ -106,7 +123,7 @@ object All {
     def tryFlatMap[U](f: Try[T] => Future[U])(implicit ec: ExecutionContext): Future[U] = {
       val promise = Promise[U]()
       future.onComplete { result =>
-        promise tryCompleteWith  f(result)
+        promise tryCompleteWith f(result)
       }
       promise.future
     }
@@ -130,7 +147,7 @@ object All {
     }
   }
 
-  implicit class ImplicitForDelayedFuture[T](lazyFuture: LazyFuture[T]) {
+  implicit class ImplicitForLazyFuture[T](lazyFuture: LazyFuture[T]) {
 
     def retryParallel[U](retries: Int)(implicit ec: ExecutionContext): Future[T] = {
       val futures = List.fill(retries)(lazyFuture.run())
@@ -139,6 +156,7 @@ object All {
 
     def retry(retries: Int)(implicit ec: ExecutionContext): Future[T] = {
       val promise = Promise[T]()
+
       def helper(leftOver: Int): Unit = {
         lazyFuture.run().tryForeach {
           case Success(value) =>
@@ -148,6 +166,7 @@ object All {
             else promise.tryFailure(th)
         }
       }
+
       helper(retries)
       promise.future
     }
@@ -163,7 +182,7 @@ object All {
 
   }
 
-  implicit class ImplicitForDelayedFutures[A](lazyFutures: Seq[LazyFuture[A]]) {
+  implicit class ImplicitForLazyFutures[A](lazyFutures: Seq[LazyFuture[A]]) {
 
     def foldLeftSerial[B](acc: B)(f: (Try[B], Try[A]) => LazyFuture[B])(implicit ec: ExecutionContext): LazyFuture[B] = {
       lazyFutures.foldLeft(LazyFuture.successful(acc)) { (partialResultFuture, currentFuture) =>
@@ -201,4 +220,5 @@ object All {
     }
 
   }
+
 }
