@@ -40,12 +40,6 @@ object All {
   type F[+A] = Future[A]
   val F = Future
 
-  object NameConstants {
-    final val DEFAULT_ACTION_SYSTEM_NAME = "fextensions-actor-system"
-  }
-
-  val fextensionsActorSystem = ActorSystem(NameConstants.DEFAULT_ACTION_SYSTEM_NAME)
-
   implicit class ImplicitForFutures[T](futures: Seq[Future[T]]) {
 
     private def firstOf(f: (Promise[T], Future[T]) => Unit)(onAllComplete: Promise[T] => Unit)(implicit ec: ExecutionContext): Future[T] = {
@@ -171,10 +165,10 @@ object All {
       promise.future
     }
 
-    def timeout(duration: FiniteDuration)(implicit ec: ExecutionContext): Future[T] = {
+    def timeout(duration: FiniteDuration)(implicit ec: ExecutionContext, actorSystem: ActorSystem): Future[T] = {
       val promise = Promise[T]()
       lazyFuture.run().onComplete(promise tryComplete)
-      All.fextensionsActorSystem.scheduler.scheduleOnce(duration) {
+      actorSystem.scheduler.scheduleOnce(duration) {
         promise tryFailure TimeoutException(s"Future timeout after ${duration.toString()}")
       }
       promise.future
